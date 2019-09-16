@@ -9,8 +9,9 @@ from ryu.lib.packet import ether_types
 from ryu.lib.packet import ipv4
 from ryu.lib.packet import in_proto
 
-FILTER_TABLE = 5
-FORWARD_TABLE = 10
+FiREWIRE_TABLE = 2
+MIRROR_TABLE = 3
+FORWARD_TABLE = 4
 
 
 class SimpleSwitch13(app_manager.RyuApp):
@@ -26,32 +27,18 @@ class SimpleSwitch13(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        # install table-miss flow entry
-        #
-        # We specify NO BUFFER to max_len of the output action due to
-        # OVS bug. At this moment, if we specify a lesser number, e.g.,
-        # 128, OVS will send Packet-In with invalid buffer_id and
-        # truncated packet data. In that case, we cannot output packets
-        # correctly.  The bug has been fixed in OVS v2.1.0.
-        ci = 1
-        print('here')
-        for i in range(254):
-            for j in range(254):
-                for k in range(2):
-                    mask = '255.255.255.255'
-                    ip = '10.' + str(i)  + '.' +  str(j) + '.' + str(k)
-                    match = parser.OFPMatch(in_port=1, eth_type=0x0800, ipv4_src=(ip, mask))
-                    actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                                      ofproto.OFPCML_NO_BUFFER)]
-                    self.add_flow(datapath, 0, match, actions, ci)
-                    ci += 1
-        print('here1')
-        # adding default tables/rules in the startup
+        match = parser.OFPMatch()
+        actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
+                                          ofproto.OFPCML_NO_BUFFER)]
+        self.add_flow(datapath, 0, match, actions)
+
+        # Adicionando tabelas padrão ao iniciar
         self.add_default_table(datapath)
         self.add_filter_table(datapath)
+        self.add_mirror_table(datapath)
         self.apply_filter_table_rules(datapath)
 
-    def add_flow(self, datapath, priority, match, actions, cookie, buffer_id=None):
+    def add_flow(self, datapath, priority, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -62,38 +49,40 @@ class SimpleSwitch13(app_manager.RyuApp):
                                     priority=priority, table_id=FORWARD_TABLE,
                                     match=match, instructions=inst)
         else:
-            mod = parser.OFPFlowMod(datapath=datapath, cookie=cookie, priority=priority,
+            mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                     match=match, table_id=FORWARD_TABLE,
                                     instructions=inst)
         datapath.send_msg(mod)
 
     def add_default_table(self, datapath):
-        ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-        inst = [parser.OFPInstructionGotoTable(FILTER_TABLE)]
+        inst = [parser.OFPInstructionGotoTable(FiREWIRE_TABLE)]
         mod = parser.OFPFlowMod(datapath=datapath, table_id=0, instructions=inst)
         datapath.send_msg(mod)
 
     def add_filter_table(self, datapath):
-        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        inst = [parser.OFPInstructionGotoTable(MIRROR_TABLE)]
+        mod = parser.OFPFlowMod(datapath=datapath, table_id=FiREWIRE_TABLE,
+                                priority=1, instructions=inst)
+        datapath.send_msg(mod)
+
+    def add_mirror_table(self, datapath):
         parser = datapath.ofproto_parser
         inst = [parser.OFPInstructionGotoTable(FORWARD_TABLE)]
-        mod = parser.OFPFlowMod(datapath=datapath, table_id=FILTER_TABLE,
+        mod = parser.OFPFlowMod(datapath=datapath, table_id=MIRROR_TABLE,
                                 priority=1, instructions=inst)
         datapath.send_msg(mod)
 
     def apply_filter_table_rules(self, datapath):
-        ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=in_proto.IPPROTO_TCP)
-        mod = parser.OFPFlowMod(datapath=datapath, table_id=FILTER_TABLE,
+        mod = parser.OFPFlowMod(datapath=datapath, table_id=FiREWIRE_TABLE,
                                 priority=10000, match=match)
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
-        # If you hit this you might want to increase
-        # the "miss_send_length" of your switch
         if ev.msg.msg_len < ev.msg.total_len:
             self.logger.debug("packet truncated: only %s of %s bytes",
                               ev.msg.msg_len, ev.msg.total_len)
@@ -153,3 +142,4 @@ class SimpleSwitch13(app_manager.RyuApp):
         out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
         datapath.send_msg(out)
+    # LEARNING SWITCH:
