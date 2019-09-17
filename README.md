@@ -70,9 +70,9 @@ sh ovs-vsctl add-flow s1 table=2 ip,nw_src=10.0.0.2,actions=drop
 ````
 
 8 - Ver regras no switch:
-
+```bash
 sh ovs-ofctl dump-flows s1 -O OpenFlow13
-
+```
 Documentos bons de se ler:
 
 Tutorial de como usar o iperf no mininet:
