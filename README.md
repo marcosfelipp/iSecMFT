@@ -54,7 +54,7 @@ Você pode alterar como quiser, mudando as variáveis.
 6 - Rodar mininet:
 
 ````bash
-sudo mn --custom topo_mn_multiple_sw.py -v output --switch ovs,protocols=OpenFlow13 --controller=remote,ip=10.0.0.101,port=6633
+sudo mn --custom topo_mn_multiple_sw.py --topo mytopo -v output --switch ovs,protocols=OpenFlow13 --controller=remote,ip=10.0.0.101,port=6633
 ````
 
 Obs: mude o IP para o IP de onde está rodando o controlador.
@@ -68,6 +68,10 @@ Por exemplo, se você quiser adcionar uma regra de bloqueio em determinado host:
 ````bash
 sh ovs-vsctl add-flow s1 table=2 ip,nw_src=10.0.0.2,actions=drop
 ````
+
+8 - Ver regras no switch:
+
+sh ovs-ofctl dump-flows s1 -O OpenFlow13
 
 Documentos bons de se ler:
 
