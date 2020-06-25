@@ -1,6 +1,6 @@
 # iSecMFT
 
-1 - Instalar VM com mininet
+1 - Instalar VM do mininet wifi
 
 2 - Para facilitar o uso da VM, você pode colocar a rede da VM no modo Bridge fazer SSH da sua máquina para VM:
 
@@ -14,77 +14,74 @@ Abra o Pronpt e Faça SSH usando o comando:
 ssh -X -v <VM's IP address>
 ````
 
-3 - Baixe o arquivo de topologia para a VM:
+3 - Faça o download desse repositório:
 
 ````bash
-wget https://raw.githubusercontent.com/marcosfelipp/iSecMFT/master/topo_mn_multiple_sw.py
+git clone https://github.com/marcosfelipp/iSecMFT.git
 ````
 
-Por padrão coloquei o número de hosts como 16. Você pode mudar para o tanto que desejar, mudando a variável N_HOSTS.
+4 - Instale as dependências:
 
-4 - Suba o controlador na VM ou no seu computador(remoto).
-
-Instalação do Ryu:
+````bash
+cd iSecMFT/mininet_wifi
+chmod +x install.sh
+./install.sh
 ````
-sudo apt-get install python3-pip -y
 
-sudo pip3 install ryu
+5 - Execução:
+
+Você pode criar sua própria topologia usando o mininedit:
+
+````bash
+python /home/wifi/mininet-wifi/examples/miniedit.py
 ````
+Para salvar clique em File - > Export Level 2 script.
+
+6 - Executar a topologia:
+
+Abra dois terminais.
+
+Em um terminal, rode o controlador:
 
 Execução do controlador que tem multiplas tabelas:
 
 ````bash
-ryu-manager controller_multiple_tables.py
+ryu-manager controller_multiple_tables_mn_wifi.py
 ````
 
 Execução do controlador que tem unica tabela:
 
 ````bash
-ryu-manager controller_single_table.py
+ryu-manager controller_single_table_mn_wifi.py
 ````
-
-5 - Configurei as tabelas da seguinte forma: 
-
-TABELA 2: Firewire
-TABELA 3: Espelhamento
-TABELA 4: Encaminhamento
-
-Você pode alterar como quiser, mudando as variáveis.
-
-6 - Rodar mininet:
+No outro terminal, rode a topologia que você salvou (obs: você deve estar na pasta onde salvou a topologia):
 
 ````bash
-sudo mn --custom topo_mn_multiple_sw.py --topo mytopo -v output --switch ovs,protocols=OpenFlow13 --controller=remote,ip=10.0.0.101,port=6633
+sudo python nome_da_topo.py
 ````
+Rode o seguinte comando para conectar o switch ao controlador:
 
-Obs: mude o IP para o IP de onde está rodando o controlador.
+````bash
+sh ovs-vsctl set-controller s1 tcp:127.0.0.1:6633
+````
 
 7 - Adicionar regras nos switches:
 
 Você pode preencher a tabela de Firewire ou as outras tabelas com o comando "ovs-vsctl add-flow".
 
-Por exemplo, se você quiser adcionar uma regra de bloqueio em determinado host:
+Por exemplo, se você quiser adcionar uma regra de bloqueio para o host 2:
 
 ````bash
-sh ovs-vsctl add-flow s1 table=2 ip,nw_src=10.0.0.2,actions=drop
+sh ovs-ofctl -O Openflow13 add-flow s1 table=2,ip,nw_src=10.0.0.2,actions=drop
 ````
 
 8 - Ver regras no switch:
+
+Todas as regras:
 ```bash
 sh ovs-ofctl dump-flows s1 -O OpenFlow13
 ```
-Documentos bons de se ler:
-
-Tutorial de como usar o iperf no mininet:
-
-http://csie.nqu.edu.tw/smallko/sdn/iperf_mininet.htm
-
-Se tiver dúvidas no uso do mininet:
-
-https://github.com/mininet/mininet/wiki/FAQ
-
-http://mininet.org/walkthrough
-
-Dúvidas quanto ao switch, criação de regras...
-
-http://docs.openvswitch.org/en/latest/tutorials/ovs-advanced/
+Regras de determinada tabela:
+```bash
+sh ovs-ofctl dump-flows s1 table=10 -O OpenFlow13
+```
