@@ -85,3 +85,34 @@ Regras de determinada tabela:
 ```bash
 sh ovs-ofctl dump-flows s1 table=10 -O OpenFlow13
 ```
+## Executar mobility.py
+Execute esses dois comandos adicionais. O primeiro comando serve para dar um 'clear' no mininet, apagando as configurações que podem ter ficado em execuções anteriores. O segundo comando ele pausa a rede da VM. Vi que as vezes pode interferir na cominicação dos hosts.
+
+```bash
+sudo mn -c
+sudo systemctl stop network-manager
+```
+
+Agora pode executar:
+
+```bash
+sudo python mobility.py
+```
+Volte para o passo 6 do tutorial (subir o controlador e rodar comando para o switch conectar nele).
+
+Faça o teste para ver se está tudo funcionando:
+
+```bash
+h1 ping sta1
+```
+
+Tente adicionar um regra de bloqueio e vê se está funcionando:
+
+
+```bash
+sh ovs-ofctl -O Openflow13 add-flow ap1 table=2,ip,nw_src=10.0.0.2,actions=drop
+
+h1 ping sta2
+```
+
+O ping deve ser bloqueado pela regra.
