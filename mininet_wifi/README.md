@@ -116,3 +116,17 @@ h1 ping sta2
 ```
 
 O ping deve ser bloqueado pela regra.
+
+## Executar vanet-sumo.py
+
+Instale as dependências do simulador SUMO (Somente uma vez):
+
+```bash
+sudo add-apt-repository ppa:sumo/stable
+sudo apt-get update
+sudo apt-get install sumo sumo-tools sumo-doc
+```
+Execute a topologia:
+```bash
+sudo python vanet-sumo.py
+```
